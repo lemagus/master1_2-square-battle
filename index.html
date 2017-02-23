@@ -43,8 +43,6 @@
     
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-    <script src="/bower_components/gyro.js/js/gyro.min.js"></script>
-    
     <script>
       
       var socket = io();
@@ -78,22 +76,15 @@
       socket.emit('create', JSON.stringify({
 	      name:name,
 	      userId:uniqid,
-	      color:color 
+	      color:color,
+	      x: Math.round( Math.random() * $(window).width() ),
+	      y: Math.round( Math.random() * $(window).height() )
       }));
       
-      /*$('.battleArena').click(function(evt){
+      $('.battleArena').click(function(evt){
 	      socket.emit('position', JSON.stringify({
 		      x:evt.pageX, 
 		      y:evt.pageY, 
-		      userId:uniqid,
-		      name: name
-	      }));
-      });*/
-      
-      gyro.startTracking(function(evt) {
-          socket.emit('position', JSON.stringify({
-		      x:evt.x, 
-		      y:evt.y, 
 		      userId:uniqid,
 		      name: name
 	      }));
@@ -102,12 +93,9 @@
       socket.on('create', function(datas){
 	      var values = JSON.parse(datas);
 	      	 
-	      var posX = ($(window).width()/2);
-		  var posY = ($(window).height()/2);
-	      	 
 	      var square = createSquare({
-		      x: posX,
-		      y: posY,
+		      x: values.x,
+		      y: values.y,
 	      },  values.color, values.userId, values.name);
 	         
 	      $('.battleArena').append(square);
@@ -131,20 +119,9 @@
 	    var pos = JSON.parse(datas);
 	    var userId = pos.userId;
 	    
-	    var square = $('#id_' + userId );
-	    
-	    var posX = ($(window).width()/2) - (square.width()/2) + (pos.x *10);
-	    var posY = ($(window).height()/2) - (square.height()/2) + (pos.y *10);
-
-		var name = square.text();
-
-	    if('null' !== name || name.trim().length > 0){
-	    	console.log( square.text(), posX, posY );
-	    }
-	    
-        square.stop().animate({
-	        'top' : posY + 'px',
-	        'left' : posX + 'px'
+        $('#id_' + userId ).animate({
+	        'top' : pos.y + 'px',
+	        'left' : pos.x + 'px'
         }, function(){
 	        
 	        var me = $('#id_' + userId);
@@ -179,7 +156,6 @@
         
         
       });
-      
     </script>
   </body>
 </html>
