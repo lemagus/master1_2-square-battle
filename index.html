@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+		.square {
+			display: block;
+			position: absolute;
+			top: 0;
+			left: 0;
+			
+			width: auto;
+			height: auto;
+
+			color: #FFF;
+			padding: 1em;
+			
+			font-family: sans-serif;
+			text-transform: uppercase;
+			
+			cursor: pointer;
+		}
+		
+		.battleArena {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			
+			margin: 0;
+			padding: 0;
+		}
+		
+		
+		
+    </style>
+  </head>
+  <body>
+    
+    <div class="battleArena">
+    </div> 
+    
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="/bower_components/gyro.js/js/gyro.min.js"></script>
+    
+    <script>
+      
+      var socket = io();
+      var uniqid = Math.round( Math.random() * 999999 );
+      
+      var squares = [];
+      
+      var name = prompt("What is your name ?");
+      var color = prompt("What is your colour ?");
+      
+      var createSquare = function(position, color, id, name) {
+	      
+	      var square = $('<div/>');
+	      square.attr('id', 'id_' + id);
+	      square.addClass('square');
+	      square.css({
+		      left: position.x,
+		      top: position.y,
+		      backgroundColor : color 
+	      });
+	      
+	      square.html(name);
+	      
+	      return square;
+      }
+      
+      var getRandomColor = function(){
+	      return 'rgb(' + Math.round( Math.random() * 255)  + ',' + Math.round( Math.random() * 255) + ',' + Math.round( Math.random() * 255) + ')';
+      }
+      
+      socket.emit('create', JSON.stringify({
+	      name:name,
+	      userId:uniqid,
+	      color:color 
+      }));
+      
+      /*$('.battleArena').click(function(evt){
+	      socket.emit('position', JSON.stringify({
+		      x:evt.pageX, 
+		      y:evt.pageY, 
+		      userId:uniqid,
+		      name: name
+	      }));
+      });*/
+      
+      gyro.startTracking(function(evt) {
+          socket.emit('position', JSON.stringify({
+		      x:evt.x, 
+		      y:evt.y, 
+		      userId:uniqid,
+		      name: name
+	      }));
+      });
+      
+      socket.on('create', function(datas){
+	      var values = JSON.parse(datas);
+	      	 
+	      var posX = ($(window).width()/2);
+		  var posY = ($(window).height()/2);
+	      	 
+	      var square = createSquare({
+		      x: posX,
+		      y: posY,
+	      },  values.color, values.userId, values.name);
+	         
+	      $('.battleArena').append(square);
+	      
+	      squares.push(square);
+      });
+      
+      socket.on('collision', function(datas){
+	      var collisions = JSON.parse(datas);
+	      
+	      for(var i in collisions){
+		     var collision = collisions[i];
+		     
+		     $('#' + collision.elId).css('background-color', collision.color); 
+	      }
+      });
+
+      
+      socket.on('position', function(datas){
+	    
+	    var pos = JSON.parse(datas);
+	    var userId = pos.userId;
+	    
+	    var square = $('#id_' + userId );
+	    
+	    var posX = ($(window).width()/2) - (square.width()/2) + (pos.x *10);
+	    var posY = ($(window).height()/2) - (square.height()/2) + (pos.y *10);
+
+		var name = square.text();
+
+	    if('null' !== name || name.trim().length > 0){
+	    	console.log( square.text(), posX, posY );
+	    }
+	    
+        square.stop().animate({
+	        'top' : posY + 'px',
+	        'left' : posX + 'px'
+        }, function(){
+	        
+	        var me = $('#id_' + userId);
+	        
+	        for(var i in squares){
+		        var square = squares[i];
+		        
+		        if(square.attr('id') == 'id_' + userId ) {
+			        continue;
+		        }
+		        
+		        var posY = parseInt(square.css('top'));
+		        var posX = parseInt(square.css('left'));
+
+		        if (pos.x < posX + square.outerWidth() &&
+				   	pos.x + me.outerWidth() > posX &&
+				   	pos.y < posY + square.outerHeight() &&
+				   	me.outerHeight() + pos.y > posY) {
+				    
+				    
+				    socket.emit('collision', JSON.stringify([
+					    { elId:me.attr('id'), color: getRandomColor() },
+					    { elId:square.attr('id'), color: getRandomColor() },
+				    ]));
+				    
+				    
+				}
+		        
+	        }
+	        
+        });
+        
+        
+      });
+      
+    </script>
+  </body>
+</html>
