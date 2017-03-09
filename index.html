@@ -73,6 +73,18 @@
 	      return 'rgb(' + Math.round( Math.random() * 255)  + ',' + Math.round( Math.random() * 255) + ',' + Math.round( Math.random() * 255) + ')';
       }
       
+      var placeSquare = function(values){
+	      
+	      var square = createSquare({
+		      x: values.x,
+		      y: values.y,
+	      },  values.color, values.userId, values.name);
+	         
+	      $('.battleArena').append(square);
+	      
+	      squares.push(square);
+      }
+      
       socket.emit('create', JSON.stringify({
 	      name:name,
 	      userId:uniqid,
@@ -92,16 +104,15 @@
       
       socket.on('create', function(datas){
 	      var values = JSON.parse(datas);
-	      	 
-	      var square = createSquare({
-		      x: values.x,
-		      y: values.y,
-	      },  values.color, values.userId, values.name);
-	         
-	      $('.battleArena').append(square);
-	      
-	      squares.push(square);
+	      placeSquare(values); 
       });
+      
+      socket.on('players', function(datas){
+		  for(var i in datas){
+			  var value = JSON.parse(datas[i]);
+			  placeSquare(value);
+		  }
+	  });
       
       socket.on('collision', function(datas){
 	      var collisions = JSON.parse(datas);
@@ -113,12 +124,17 @@
 	      }
       });
 
+	  socket.on('delete', function(datas){
+		 var player = JSON.parse(datas);
+		 $('#id_' + player.userId ).remove(); 
+	  });
+	  
       
       socket.on('position', function(datas){
 	    
 	    var pos = JSON.parse(datas);
 	    var userId = pos.userId;
-	    
+	    	    
         $('#id_' + userId ).animate({
 	        'top' : pos.y + 'px',
 	        'left' : pos.x + 'px'
@@ -156,6 +172,13 @@
         
         
       });
+      
+      $(window).on('beforeunload', function(){
+	      socket.emit('leave', {
+		      uniqid: uniqid
+	      });
+      });
+      
     </script>
   </body>
 </html>
